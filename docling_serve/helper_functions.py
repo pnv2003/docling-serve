@@ -1,10 +1,24 @@
+import importlib.metadata
 import inspect
 import json
+import platform
 import re
+import sys
 from typing import Union, get_args, get_origin
 
 from fastapi import Depends, Form
 from pydantic import BaseModel, TypeAdapter
+
+DOCLING_VERSIONS = {
+    "docling-serve": importlib.metadata.version("docling-serve"),
+    "docling-jobkit": importlib.metadata.version("docling-jobkit"),
+    "docling": importlib.metadata.version("docling"),
+    "docling-core": importlib.metadata.version("docling-core"),
+    "docling-ibm-models": importlib.metadata.version("docling-ibm-models"),
+    "docling-parse": importlib.metadata.version("docling-parse"),
+    "python": f"{sys.implementation.cache_tag} ({platform.python_version()})",
+    "plaform": platform.platform(),
+}
 
 
 def is_pydantic_model(type_):
@@ -29,10 +43,15 @@ def is_pydantic_model(type_):
 
 # Adapted from
 # https://github.com/fastapi/fastapi/discussions/8971#discussioncomment-7892972
-def FormDepends(cls: type[BaseModel]):
+def FormDepends(
+    cls: type[BaseModel], prefix: str = "", excluded_fields: list[str] = []
+):
     new_parameters = []
 
     for field_name, model_field in cls.model_fields.items():
+        if field_name in excluded_fields:
+            continue
+
         annotation = model_field.annotation
         description = model_field.description
         default = (
@@ -63,7 +82,7 @@ def FormDepends(cls: type[BaseModel]):
 
         new_parameters.append(
             inspect.Parameter(
-                name=field_name,
+                name=f"{prefix}{field_name}",
                 kind=inspect.Parameter.POSITIONAL_ONLY,
                 default=default,
                 annotation=annotation,
@@ -71,19 +90,23 @@ def FormDepends(cls: type[BaseModel]):
         )
 
     async def as_form_func(**data):
+        newdata = {}
         for field_name, model_field in cls.model_fields.items():
-            value = data.get(field_name)
+            if field_name in excluded_fields:
+                continue
+            value = data.get(f"{prefix}{field_name}")
+            newdata[field_name] = value
             annotation = model_field.annotation
 
             # Parse nested models from JSON string
             if value is not None and is_pydantic_model(annotation):
                 try:
                     validator = TypeAdapter(annotation)
-                    data[field_name] = validator.validate_json(value)
+                    newdata[field_name] = validator.validate_json(value)
                 except Exception as e:
                     raise ValueError(f"Invalid JSON for field '{field_name}': {e}")
 
-        return cls(**data)
+        return cls(**newdata)
 
     sig = inspect.signature(as_form_func)
     sig = sig.replace(parameters=new_parameters)
