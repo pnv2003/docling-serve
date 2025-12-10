@@ -35,7 +35,7 @@ requires-python = ">=3.10"
 dependencies = [
     "docling~=2.38",
     "docling-core>=2.45.0",
-    "docling-jobkit[kfp,rq,vlm]>=1.8.0,<2.0.0",
+    "docling-jobkit[kfp,rq]>=1.8.0,<2.0.0",
     "fastapi[standard]<0.119.0",  # ~=0.115
     "httpx~=0.28",
     "pydantic~=2.10",
@@ -92,6 +92,11 @@ cpu = [
   "torchvision>=0.22.1",
 ]
 
+cu121 = [
+  "torch==2.5.1",
+  "torchvision==0.20.1",
+]
+
 # cu124 = [
 #   "torch>=2.6.0",
 #   "torchvision>=0.21.0",
@@ -120,6 +125,7 @@ conflicts = [
   [
     { group = "pypi" },
     { group = "cpu" },
+    { group = "cu121" },
     # { group = "cu124" },
     { group = "cu126" },
     { group = "cu128" },
@@ -136,6 +142,7 @@ override-dependencies = [
 torch = [
   { index = "pytorch-pypi", group = "pypi" },
   { index = "pytorch-cpu", group = "cpu" },
+  { index = "pytorch-cu121", group = "cu121", marker = "sys_platform == 'linux'" },
   # { index = "pytorch-cu124", group = "cu124", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu126", group = "cu126", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu128", group = "cu128", marker = "sys_platform == 'linux'" },
@@ -145,6 +152,7 @@ torch = [
 torchvision = [
   { index = "pytorch-pypi", group = "pypi" },
   { index = "pytorch-cpu", group = "cpu" },
+  { index = "pytorch-cu121", group = "cu121", marker = "sys_platform == 'linux'" },
   # { index = "pytorch-cu124", group = "cu124", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu126", group = "cu126", marker = "sys_platform == 'linux'" },
   { index = "pytorch-cu128", group = "cu128", marker = "sys_platform == 'linux'" },
@@ -166,6 +174,11 @@ explicit = true
 [[tool.uv.index]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
 explicit = true
 
 # [[tool.uv.index]]
